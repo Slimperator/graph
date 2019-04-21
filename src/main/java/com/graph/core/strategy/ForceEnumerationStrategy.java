@@ -1,60 +1,81 @@
 package com.graph.core.strategy;
 
+import com.graph.core.dataaccess.entity.edge.Edge;
 import com.graph.core.dataaccess.entity.edge.EdgeDirection;
-import com.graph.core.dataaccess.entity.edge.NonWeightedEdge;
 import com.graph.core.dataaccess.entity.graph.AbstractGraph;
 import com.graph.core.dataaccess.entity.path.SimplePath;
-import com.graph.core.dataaccess.entity.vertex.SimpleVertex;
+import com.graph.core.dataaccess.entity.vertex.Vertex;
 import lombok.NonNull;
 
 import java.util.*;
 
+/**
+ *  {@link ForceEnumerationStrategy} is the force enumeration strategy implementation of the {@link PathfinderStrategy}.
+ *   Strategy recursively looking for end vertex starts from start vertex
+ *   and going through all the associated vertices.
+ */
 public class ForceEnumerationStrategy implements PathfinderStrategy {
     private static final String VERTEXES_DOES_NOT_EXISTS_MASSAGE = "Vertexes doesn't exists";
-    private Set<SimpleVertex> visitedVertexes = new HashSet<>();
-    private SimplePath path = new SimplePath(new HashMap<>());
+    private Set<Vertex> visitedVertexes;
+    private SimplePath path;
 
-    public SimplePath findPath(@NonNull AbstractGraph graph, @NonNull SimpleVertex startVertex, @NonNull SimpleVertex endVertex) {
-        if (!graph.isGraphContainVertexes(startVertex, endVertex)) {
+    /**
+     * Find path from the {@code startVertex} to {@code endVertex} in graph {@code graph}.
+     *
+     * @param graph  in which the path is looking for
+     * @param startVertex  the vertex where the path starts
+     * @param endVertex  the vertex where the path ends
+     * @throws IllegalArgumentException if at least one vertices doesn't exists
+     * @return {@code SimplePath} path between two vertexes
+     */
+    public SimplePath findPath(@NonNull final AbstractGraph graph, @NonNull final Vertex startVertex, @NonNull final Vertex endVertex) {
+        visitedVertexes = new HashSet<>();
+        path = new SimplePath(new ArrayList<>(), new ArrayList<>());
+        if (!graph.isGraphContainVertices(startVertex, endVertex)) {
             throw new IllegalArgumentException(VERTEXES_DOES_NOT_EXISTS_MASSAGE);
         }
         forceEnumeration(graph, startVertex, endVertex);
+        path.reversePath();
         return path;
     }
 
-    private boolean forceEnumeration(AbstractGraph graph, SimpleVertex startVertex, SimpleVertex endVertex) {
-        //Если вершина уже помечена - возвращаем фелс
+    private boolean forceEnumeration(final AbstractGraph graph, final Vertex startVertex, final Vertex endVertex) {
+        //Check current Vertex
         if (visitedVertexes.contains(startVertex)) {
             return false;
         } else {
-            // иначе помечаем вершину
             visitedVertexes.add(startVertex);
         }
-        // если вершина связана с искомой, начинаем формировать путь и сохраняем вершину с ребром в мапу
+        // starting path creation if the current vertex has edge with the end vertex
         if (startVertex.getEdges().containsKey(endVertex.getId()) && isEdgeDirectionFromVertex(startVertex.getEdges().get(endVertex.getId()))) {
-            path.getPath().put(startVertex, startVertex.getEdges().get(endVertex.getId()));
+            addVertexToPath(endVertex, endVertex.getEdges().get(startVertex.getId()));
+            addVertexToPath(startVertex, startVertex.getEdges().get(endVertex.getId()));
             return true;
         } else {
-            // иначе обходим все ребра в поисках нужной
-            for (Map.Entry<UUID, NonWeightedEdge> connection: startVertex.getEdges().entrySet()) {
-                //достаем вершину из родителя
-                SimpleVertex vertex = graph.getVertexById(connection.getKey());
-                //если направление связи из вершины, тогда
-                //рекурсивно погружаем её в этот же метод
-                //если путь нашелся, помещаем в путь данную промежуточную вершину и пробрасываем выше
+            // If the current vertex doesn't have edge with the end one
+            // looking for a edge in connected vertices
+            for (Map.Entry<UUID, Edge> connection: startVertex.getEdges().entrySet()) {
+                Vertex vertex = graph.getVertexById(connection.getKey());
+                //If the edge isn't REVERSE - recursively looking for end vertex in connected vertices
                 if (isEdgeDirectionFromVertex(connection.getValue())) {
+                    //If path was found - add current vertex to path end moving to the top one
                     if (forceEnumeration(graph, vertex, endVertex)) {
-                        path.getPath().put(startVertex, startVertex.getEdges().get(vertex.getId()));
+                        addVertexToPath(startVertex, startVertex.getEdges().get(vertex.getId()));
                         return true;
                     }
                 }
             }
         }
-        //если не нашли путь, возвращаем фелс
+        //If path wasn't found - return false
         return false;
     }
 
-    private boolean isEdgeDirectionFromVertex(NonWeightedEdge edge) {
+    private void addVertexToPath(final Vertex vertex, final Edge edge) {
+        path.getEdges().add(edge);
+        path.getVertices().add(vertex);
+    }
+
+    private boolean isEdgeDirectionFromVertex(final Edge edge) {
         return edge.getDirection().equals(EdgeDirection.ABOTH) || edge.getDirection().equals(EdgeDirection.DIRECT);
     }
 }

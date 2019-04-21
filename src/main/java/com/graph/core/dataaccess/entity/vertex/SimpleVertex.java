@@ -1,18 +1,25 @@
 package com.graph.core.dataaccess.entity.vertex;
 
-import com.graph.core.dataaccess.entity.AbstractEntity;
-import com.graph.core.dataaccess.entity.edge.NonWeightedEdge;
-import lombok.AllArgsConstructor;
+import com.graph.core.dataaccess.entity.edge.Edge;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NonNull;
 
 import java.util.Map;
 import java.util.UUID;
 
 @Data
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class SimpleVertex extends AbstractEntity {
+public class SimpleVertex extends Vertex {
     private String name;
-    private Map<UUID, NonWeightedEdge> edges;
+
+    public SimpleVertex(@NonNull Map<UUID, Edge> edges, @NonNull String name) {
+        super(edges);
+        this.name = name;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
 }

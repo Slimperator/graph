@@ -14,17 +14,17 @@ import java.util.UUID;
 import static java.util.Arrays.asList;
 
 /**
- *   {@link DirectedGraph} is the simple directed graph realisation.
+ *   {@link DirectedGraph} is the simple undirected graph realisation.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class DirectedGraph extends AbstractGraph {
-    private static final String WRONG_DIRECTION_MASSAGE = "Vertex edge with itself can't be one-way-directed";
+public class UndirectedGraph extends AbstractGraph {
+    private static final String WRONG_DIRECTION_MASSAGE = "Can't create directed edge in undirected graph";
     private static final String VERTEXES_DOES_NOT_EXISTS_MASSAGE = "Vertexes doesn't exists";
     private static final String EDGE_ALREADY_EXISTS_MASSAGE = "Edge already exists";
     private static final String VERTEX_ALREADY_EXISTS_MASSAGE = "Vertexes already exist";
 
-    public DirectedGraph(@NonNull Set<Vertex> vertexes) {
+    public UndirectedGraph(@NonNull Set<Vertex> vertexes) {
         super(vertexes, new HashSet<>());
     }
 
@@ -39,7 +39,8 @@ public class DirectedGraph extends AbstractGraph {
         if (isGraphContainVertices(vertex)) {
             throw new IllegalArgumentException(VERTEX_ALREADY_EXISTS_MASSAGE);
         }
-        super.getVertexes().add(vertex);
+        super.getVertexes()
+                .add(vertex);
     }
 
     /**
@@ -49,10 +50,13 @@ public class DirectedGraph extends AbstractGraph {
      * @param vertexTo  the vertex where the edge ends
      * @throws IllegalArgumentException if the graph already contain the edge
      * @throws IllegalArgumentException if at least one vertices doesn't exists
-     * @throws IllegalArgumentException if the edge to add has non-Aboth direction
+     * @throws IllegalArgumentException if this is vertex-to-itself edge and edge has non-Aboth direction
      */
     @Override
     public void addEdge(@NonNull final Vertex vertexFrom, @NonNull final Vertex vertexTo, @NonNull final Edge edge) {
+        if (!edge.getDirection().equals(EdgeDirection.ABOTH)) {
+            throw new IllegalArgumentException(WRONG_DIRECTION_MASSAGE);
+        }
         if (!isGraphContainVertices(vertexFrom, vertexTo)) {
             throw new IllegalArgumentException(VERTEXES_DOES_NOT_EXISTS_MASSAGE);
         }
@@ -60,31 +64,23 @@ public class DirectedGraph extends AbstractGraph {
             throw new IllegalArgumentException(EDGE_ALREADY_EXISTS_MASSAGE);
         }
         if (vertexFrom == vertexTo) {
-            if (!edge.getDirection()
-                    .equals(EdgeDirection.ABOTH)) {
-                throw new IllegalArgumentException(WRONG_DIRECTION_MASSAGE);
-            }
             super.getVertexes()
                     .remove(vertexFrom);
             vertexFrom.getEdges()
                     .put(vertexTo.getId(), edge);
             super.getVertexes()
                     .add(vertexFrom);
-            super.getEdgesIds()
-                    .add(edge.getId());
         } else {
-            final Edge reversedEdge = edge.reverseEdge();
             super.getVertexes()
                     .removeAll(asList(vertexFrom, vertexTo));
             vertexFrom.getEdges()
                     .put(vertexTo.getId(), edge);
             vertexTo.getEdges()
-                    .put(vertexFrom.getId(), reversedEdge);
+                    .put(vertexFrom.getId(), edge);
             super.getVertexes()
                     .addAll(asList(vertexFrom, vertexTo));
-            super.getEdgesIds()
-                    .addAll(asList(edge.getId(), reversedEdge.getId()));
         }
+        super.getEdgesIds().add(edge.getId());
     }
 
     @Override
